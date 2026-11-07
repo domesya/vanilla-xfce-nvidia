@@ -7,11 +7,10 @@ on:
       - '*'
   schedule:
     - cron: '21 */6 * * *'
-  pull_request:
   workflow_dispatch:
 
 env:
-  CUSTOM_IMAGE_NAME: custom
+  CUSTOM_IMAGE_NAME: vanilla-xfce-nvidia
   BUILDX_NO_DEFAULT_ATTESTATIONS: 1
 
 jobs:

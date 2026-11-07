@@ -1,24 +1,27 @@
-name: Custom Vanilla Desktop # Replace this name with your image name
-id: custom # Replace this ID with your image ID
+name: Vanilla XFCE NVIDIA
+id: vanilla-xfce-nvidia
 vibversion: 1.1.0
 
 stages:
 - id: build
-  base: ghcr.io/vanilla-os/gnome:latest # Optionally, Replace this image URL with a different one i.e. gnome-nvidia:latest, etc
+  base: ghcr.io/domesya/vanilla-xfce:main
   addincludes: true
   singlelayer: false
   labels:
-    maintainer: self-maintained # Optionally, Replace this with your name
+    maintainer: domesya
   args:
-    DEBIAN_FRONTEND: noninteractive # Set the image environment as non-interactive
-  cleanup:
-    - /tmp/*
-    - /var/tmp/*
-
-  # Commands to run first before building the modules
+    DEBIAN_FRONTEND: noninteractive
   runs:
     commands:
       - echo 'APT::Install-Recommends "1";' > /etc/apt/apt.conf.d/01norecommends
+  cleanup:
+    - /var/cache/apt/pkgcache.bin
+    - /var/cache/apt/srcpkgcache.bin
+    - /var/cache/debconf
+    - /var/cache/fontconfig
+    - /var/cache/ldconfig
+    - /var/cache/man
+    - /var/log/*
 
   modules:
   - name: init-setup
@@ -27,36 +30,87 @@ stages:
     - lpkg --unlock
     - apt-get update
 
-  # Put your custom actions below this comment
+  - name: patch-nvidia-kernel-dkms
+    type: shell
+    sources:
+      - type: file
+        url: https://bugs.debian.org/cgi-bin/bugreport.cgi?att=2;bug=1148283;filename=nvidia-550-linux-7.2.patch;msg=28
+        checksum: 0d233727ca9031b3dd063210d19819e8b446243909020a7ef0b7575e7d24ba2f
+    commands:
+      - apt download nvidia-kernel-dkms
+      - dpkg --unpack nvidia-kernel-dkms*.deb
+      - rm nvidia-kernel-dkms*.deb
+      - cd /usr/src/nvidia-current-550.163.01
+      - patch -p1 < /sources/patch-nvidia-kernel-dkms/bugreport/patch-nvidia-kernel-dkms.patch\;msg\=28
+      - dpkg --configure -a
+    cleanup:
+      - /var/lib/dkms/mok.key
+    modules:
+      - name: nvidia-kernel-dkms-deps-install
+        type: apt
+        sources:
+          - packages:
+              - dkms
+              - firmware-nvidia-gsp
+              - nvidia-installer-cleanup
+              - nvidia-kernel-support--v1
 
-  - name: example-packages # Sample module using the built-in Apt module to install packages
+  - name: install-nvidia
     type: apt
     sources:
       - packages:
-        - vim
+        - nvidia-driver
+        - nvidia-vaapi-driver
+        - nvidia-settings
+        - nvidia-smi
+        - firmware-misc-nonfree
+    cleanup:
+      - /var/lib/dkms/mok.key
 
-  - name: example-commands # Sample module demonstrating the Shell module with custom commands
+  - name: nvidia-sysd-units
     type: shell
     commands:
-    - echo Example output
+    - mkdir -p /etc/systemd/system/systemd-suspend.service.wants
+    - mkdir -p /etc/systemd/system/systemd-hibernate.service.wants
+    - ln -s /usr/lib/systemd/system/nvidia-suspend.service /etc/systemd/system/systemd-suspend.service.wants/nvidia-suspend.service || true
+    - ln -s /usr/lib/systemd/system/nvidia-hibernate.service /etc/systemd/system/systemd-hibernate.service.wants/nvidia-hibernate.service || true
+    - ln -s /usr/lib/systemd/system/nvidia-resume.service /etc/systemd/system/systemd-hibernate.service.wants/nvidia-resume.service || true
 
-  - name: example-modules # Sample module demonstrating importing local and remote modules
-    type: includes
-    includes:
-      - modules/50-install-debs.yml # Sample local module present in this repository
-      # - gh:vanilla-os/dev-image:main:modules/00-basics.yml # Sample GitHub remote module in the format: `gh:your-name/your-repo:branch:modules/file.yml`
-      # - https://raw.githubusercontent.com/Vanilla-OS/dev-image/main/modules/05-go.yml # Sample full URL remote module
+  - name: extra-utilities
+    type: apt
+    sources:
+      - packages:
+        - switcheroo-control
 
-  # Put your custom actions above this comment
+  - name: vanilla-tools
+    type: shell
+    sources:
+      - type: tar
+        url: https://github.com/Vanilla-OS/vanilla-tools/releases/download/v1.0.1/vanilla-tools-amd64.tar.gz
+        checksum: aef32f07820e0993e534e6bccfa1a6daae6c8c6f0543d3e073f4f121f2ef2e31
+        only-arches: [amd64]
+      - type: tar
+        url: https://github.com/Vanilla-OS/vanilla-tools/releases/download/v1.0.1/vanilla-tools-arm64.tar.gz
+        checksum: e59b098338de6f6071376e07ec79b17be6c8f0a0dd354fab128e1e86a36d0862
+        only-arches: [arm64]
+    commands:
+    - mkdir -p /usr/bin
+    - cp /sources/vanilla-tools/vanilla-tools*/vanilla-tools/nrun /usr/bin/nrun
+    - cp /sources/vanilla-tools/vanilla-tools*/vanilla-tools/prime-switch /usr/bin/prime-switch
+    - chmod +x /usr/bin/nrun
+    - chmod +x /usr/bin/prime-switch
 
-  - name: set-image-name-abroot
-    type: includes
-    includes:
-      - modules/80-set-image-abroot-config.yml
-
+  # - name: enable-wayland
+  #   type: shell
+  #   commands:
+  #   - mkdir -p /etc/udev/rules.d
+  #   - ln -s /dev/null /etc/udev/rules.d/61-gdm.rules
+  #
   - name: cleanup
     type: shell
     commands:
-    - apt-get autoremove -y
-    - apt-get clean
+    - apt autoremove -y
+    - apt clean
+    - apt remove -y zutty gnome-shell-extension-prefs
+    - SUDO_FORCE_REMOVE=yes apt purge -y sudo
     - lpkg --lock
