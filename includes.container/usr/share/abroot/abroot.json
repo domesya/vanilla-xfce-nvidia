@@ -1,27 +1,22 @@
 {
-    "autoRepair": true,
-    "maxParallelDownloads": 2,
-
-    "registry": "ghcr.io",
-    "registryService": "registry.ghcr.io",
-    "registryAPIVersion": "v2",
-    "name": "vanilla-os/gnome-nvidia",
-    "tag": "latest",
-
-    "iPkgMngPre": "lpkg --unlock",
-    "iPkgMngPost": "lpkg --lock",
-    "iPkgMngAdd": "apt-get install -y",
-    "iPkgMngRm": "apt-get remove -y --autoremove",
-    "iPkgMngApi": "https://packages.vanillaos.org/api/pkg/{packageName}",
-    "iPkgMngStatus": 2,
-
-    "differURL": "https://differ.vanillaos.org",
-
-    "partLabelVar": "vos-var",
-    "partLabelA": "vos-a",
-    "partLabelB": "vos-b",
-    "partLabelBoot": "vos-boot",
-    "partLabelEfi": "vos-efi",
-
-    "libPathStates": "/var/lib/abroot/states"
+  "autoRepair": true,
+  "differURL": "https://differ.vanillaos.org",
+  "iPkgMngAdd": "apt-get install -y",
+  "iPkgMngApi": "https://packages.vanillaos.org/api/pkg/{packageName}",
+  "iPkgMngPost": "lpkg --lock",
+  "iPkgMngPre": "lpkg --unlock",
+  "iPkgMngRm": "apt-get remove -y --autoremove",
+  "iPkgMngStatus": 2,
+  "libPathStates": "/var/lib/abroot/states",
+  "maxParallelDownloads": 2,
+  "name": "domesya/vanilla-xfce-nvidia",
+  "partLabelA": "vos-a",
+  "partLabelB": "vos-b",
+  "partLabelBoot": "vos-boot",
+  "partLabelEfi": "vos-efi",
+  "partLabelVar": "vos-var",
+  "registry": "ghcr.io",
+  "registryAPIVersion": "v2",
+  "registryService": "registry.ghcr.io",
+  "tag": "main"
 }

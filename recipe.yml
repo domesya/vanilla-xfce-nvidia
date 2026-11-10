@@ -106,6 +106,14 @@ stages:
   #   - mkdir -p /etc/udev/rules.d
   #   - ln -s /dev/null /etc/udev/rules.d/61-gdm.rules
   #
+  # - name: set-xfce-default
+  #   type: shell
+  #   commands:
+  #   - apt-get install -y lightdm lightdm-gtk-greeter
+  #   - systemctl disable gdm
+  #   - systemctl enable lightdm
+  #      
+  
   - name: cleanup
     type: shell
     commands:
